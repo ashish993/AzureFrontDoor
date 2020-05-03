@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "frontDoorName": {
+      "value": "Enter AFD Name"
+    },
+    "dynamicCompression": {
+      "value": "Enabled"
+    },
+    "backendPools1": {
+      "value": {
+        "name": "backendpool1",
+        "backends": [
+          {
+            "address": "Enter Azure Web App FQDN",
+            "httpPort": 80,
+            "httpsPort": 443,
+            "weight": 50,
+            "priority": 1,
+            "enabledState": "Enabled"
+          },
+          {
+            "address": "Enter Azure Web App FQDN",
+            "httpPort": 80,
+            "httpsPort": 443,
+            "weight": 50,
+            "priority": 2,
+            "enabledState": "Enabled"
+          }
+        ]
+      }
+    }
+  }
+}

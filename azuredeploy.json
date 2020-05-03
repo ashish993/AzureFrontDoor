@@ -1,0 +1,136 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "dynamicCompression": {
+      "type": "string",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Whether to use dynamic compression for cached content."
+      }
+    },
+    "frontDoorName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the frontdoor resource."
+      }
+    },
+    "backendPools1": {
+      "type": "object",
+      "metadata": {
+        "description": "Details of the backend pool 1 for the Azure Front Door"
+      }
+    }
+  },
+  "variables": {
+    "frontdoorref": "[resourceId('Microsoft.Network/frontDoors', parameters('frontDoorName'))]",
+    "frontdoorLocation": "global"
+  },
+  "resources": [
+    {
+      "apiVersion": "2018-08-01",
+      "type": "Microsoft.Network/frontDoors",
+      "name": "[parameters('frontDoorName')]",
+      "location": "[variables('frontdoorLocation')]",
+      "tags": {},
+      "properties": {
+        "routingRules": [
+          {
+            "name": "routingRule1",
+            "properties": {
+              "frontendEndpoints": [
+                {
+                  "id": "[concat(variables('frontdoorref'),'/frontendEndpoints/frontendEndpoint1')]"
+                }
+              ],
+              "acceptedProtocols": [
+                "Http",
+                "Https"
+              ],
+              "patternsToMatch": [
+                "/*",
+                "/site1/*"
+              ],
+              "forwardingProtocol": "MatchRequest",
+              "backendPool": {
+                "id": "[concat(variables('frontdoorref'),'/backendPools/',parameters('backendPools1').name)]"
+              },
+              "CacheConfiguration": {
+                "queryParameterStripDirective": "StripNone",
+                "dynamicCompression": "[parameters('dynamicCompression')]"
+              },
+              "enabledState": "Enabled"
+            }
+          }
+
+        ],
+        "healthProbeSettings": [
+          {
+            "name": "healthProbeSettings1",
+            "properties": {
+              "path": "/",
+              "protocol": "Http",
+              "intervalInSeconds": 120
+            }
+          }
+
+        ],
+        "loadBalancingSettings": [
+          {
+            "name": "loadBalancingSettings1",
+            "properties": {
+              "sampleSize": 4,
+              "successfulSamplesRequired": 2
+            }
+          }
+
+        ],
+        "backendPools": [
+          {
+            "name": "[parameters('backendPools1').name]",
+            "properties": {
+              "copy": [
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/frontdoors', parameters('frontDoorName')), '/BackendPools/webapp')]",
+                  "name": "backends",
+                  "count": "[length(parameters('backendPools1').backends)]",
+                  "input": {
+                    "address": "[parameters('backendPools1').backends[copyIndex('backends')].address]",
+                    "httpPort": "[parameters('backendPools1').backends[copyIndex('backends')].httpPort]",
+                    "httpsPort": "[parameters('backendPools1').backends[copyIndex('backends')].httpsPort]",
+                    "weight": "[parameters('backendPools1').backends[copyIndex('backends')].weight]",
+                    "priority": "[parameters('backendPools1').backends[copyIndex('backends')].priority]",
+                    "enabledState": "[parameters('backendPools1').backends[copyIndex('backends')].enabledState]",
+                    "backendHostHeader": "[parameters('backendPools1').backends[copyIndex('backends')].address]"
+                  }
+                }
+              ],
+              "loadBalancingSettings": {
+                "id": "[concat(variables('frontdoorref'),'/loadBalancingSettings/loadBalancingSettings1')]"
+              },
+              "healthProbeSettings": {
+                "id": "[concat(variables('frontdoorref'),'/healthProbeSettings/healthProbeSettings1')]"
+              }
+            }
+          }
+
+        ],
+        "frontendEndpoints": [
+          {
+            "name": "frontendEndpoint1",
+            "properties": {
+              "hostName": "[concat(parameters('frontDoorName'), '.azurefd.net')]",
+              "sessionAffinityEnabledState": "Disabled",
+              "sessionAffinityTtlSeconds": 0
+            }
+          }
+        ],
+        "enabledState": "Enabled"
+      }
+    }
+  ],
+  "outputs": {}
+}
